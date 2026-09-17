@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Очередь пациентов</title>
+<style>
+  :root { color-scheme: light dark; --bg:#fff; --fg:#111; --muted:#666; --line:#ddd; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14161a; --fg:#eee; --muted:#9aa; --line:#333; } }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg);
+         font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  main { max-width:760px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 12px; }
+  .card { border:1px solid var(--line); border-left-width:6px; border-radius:12px; padding:12px; margin-bottom:12px; }
+  .emergency { border-left-color:#b91c1c; }
+  .today { border-left-color:#ea580c; }
+  .planned { border-left-color:#2563eb; }
+  .selfcare { border-left-color:#16a34a; }
+  .head { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
+  .tag { font-weight:700; }
+  .time { color:var(--muted); font-size:13px; }
+  table { width:100%; border-collapse:collapse; margin:8px 0; }
+  td { padding:5px 4px; border-bottom:1px solid var(--line); vertical-align:top; }
+  td:first-child { color:var(--muted); width:38%; }
+  button { font:inherit; padding:10px 14px; border-radius:10px; border:1px solid var(--line);
+           background:transparent; color:var(--fg); cursor:pointer; }
+  .empty { color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Очередь пациентов <button id="refresh">Обновить</button></h1>
+  <div id="list" class="empty">Загрузка…</div>
+</main>
+<script>
+const list = document.getElementById('list');
+const key = new URLSearchParams(location.search).get('key');
+
+function esc(v) { return v == null ? '—' : String(v).replace(/</g, '&lt;'); }
+
+function plain(card) {
+  return [
+    'Срочность: ' + card.urgency.label,
+    'Тревожные признаки: ' + (card.redFlags.length ? card.redFlags.join(', ') : 'не выявлены'),
+    'Жалобы: ' + (card.complaints || '—'),
+    'Длительность: ' + (card.duration || '—'),
+    'Боль (0-10): ' + (card.painLevel ?? '—'),
+    'Аллергии: ' + (card.allergies || '—'),
+    'Хронические заболевания: ' + (card.chronic || '—'),
+    'Препараты: ' + (card.meds || '—'),
+    '',
+    card.draft || '',
+  ].join('\n');
+}
+
+async function copy(text, button) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  }
+  button.textContent = 'Скопировано';
+  setTimeout(() => (button.textContent = 'Скопировать запись'), 1500);
+}
+
+async function load() {
+  const res = await fetch('/api/queue' + (key ? '?key=' + encodeURIComponent(key) : ''));
+  const data = await res.json();
+  if (!res.ok) { list.textContent = data.error; return; }
+  if (!data.cards.length) { list.className = 'empty'; list.textContent = 'Пока никто не завершил опрос.'; return; }
+  list.className = '';
+  list.innerHTML = '';
+  for (const card of data.cards) {
+    const div = document.createElement('div');
+    div.className = 'card ' + card.urgency.code;
+    div.innerHTML = `
+      <div class="head">
+        <span class="tag">${card.urgency.label}</span>
+        <span class="time">${new Date(card.createdAt).toLocaleString('ru-RU')}</span>
+      </div>
+      <table>
+        <tr><td>Жалобы</td><td>${esc(card.complaints)}</td></tr>
+        <tr><td>Длительность</td><td>${esc(card.duration)}</td></tr>
+        <tr><td>Боль (0–10)</td><td>${esc(card.painLevel)}</td></tr>
+        <tr><td>Тревожные признаки</td><td>${card.redFlags.length ? esc(card.redFlags.join(', ')) : 'не выявлены'}</td></tr>
+        <tr><td>Аллергии</td><td>${esc(card.allergies)}</td></tr>
+        <tr><td>Хронические заболевания</td><td>${esc(card.chronic)}</td></tr>
+        <tr><td>Препараты</td><td>${esc(card.meds)}</td></tr>
+        <tr><td>Черновик записи</td><td>${esc(card.draft)}</td></tr>
+      </table>`;
+    const btn = document.createElement('button');
+    btn.textContent = 'Скопировать запись';
+    btn.onclick = () => copy(plain(card), btn);
+    div.appendChild(btn);
+    list.appendChild(div);
+  }
+}
+
+document.getElementById('refresh').onclick = load;
+load();
+setInterval(load, 10000);
+</script>
+</body>
+</html>
