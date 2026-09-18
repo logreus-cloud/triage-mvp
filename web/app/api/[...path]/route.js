@@ -4,7 +4,18 @@
 // в исходниках страницы, а на Render фронтенд и API остаются независимыми
 // сервисами — меняется одна переменная окружения, а не код.
 
-const API_URL = (process.env.API_URL || 'http://localhost:3001').replace(/\/$/, '');
+// Render подставляет адрес соседнего сервиса без схемы
+// («triage-api.onrender.com:443»), а fetch такое не принимает — здесь это
+// стоило бы 502 на каждом запросе, поэтому нормализуем.
+function normalizeUrl(raw) {
+  const value = String(raw || '').trim().replace(/\/+$/, '');
+  if (!value) return 'http://localhost:3001';
+  if (/^https?:\/\//i.test(value)) return value;
+  const isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|$)/i.test(value);
+  return `${isLocal ? 'http' : 'https'}://${value.replace(/:443$/, '')}`;
+}
+
+const API_URL = normalizeUrl(process.env.API_URL);
 
 export const dynamic = 'force-dynamic';
 

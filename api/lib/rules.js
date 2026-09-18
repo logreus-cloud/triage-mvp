@@ -5,8 +5,9 @@
 // после сна идёт полминуты. Поэтому любой сбой или таймаут means откат на
 // локальные JS-правила: карточка станет беднее, но врач её получит.
 import { classify as classifyLocally, parsePain } from './triage.js';
+import { normalizeUrl } from './url.js';
 
-const RULES_URL = (process.env.RULES_URL || '').replace(/\/$/, '');
+const RULES_URL = normalizeUrl(process.env.RULES_URL);
 const TIMEOUT_MS = Number(process.env.RULES_TIMEOUT_MS || 4000);
 
 let lastError = null;
