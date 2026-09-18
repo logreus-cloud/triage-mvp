@@ -28,11 +28,12 @@ services:
     envVars:
       - key: DEMO_MODE
         value: "1"
+      # Публичный адрес, а не fromService: на бесплатном плане Render
+      # внутренняя сеть между сервисами не работает, и внутренний адрес
+      # «triage-rules:10000» даёт fetch failed. При первом развёртывании
+      # Render добавляет к именам случайный суффикс — подставьте свои.
       - key: RULES_URL
-        fromService:
-          type: web
-          name: triage-rules
-          property: hostport
+        value: https://triage-rules.onrender.com
       - key: RULES_TIMEOUT_MS
         value: "4000"
 
@@ -45,8 +46,6 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
+      # Тот же случай: публичный адрес вместо внутреннего.
       - key: API_URL
-        fromService:
-          type: web
-          name: triage-api
-          property: hostport
+        value: https://triage-api-7tcb.onrender.com
