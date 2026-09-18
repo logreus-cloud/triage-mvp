@@ -4,15 +4,21 @@
 // в исходниках страницы, а на Render фронтенд и API остаются независимыми
 // сервисами — меняется одна переменная окружения, а не код.
 
-// Render подставляет адрес соседнего сервиса без схемы
-// («triage-api.onrender.com:443»), а fetch такое не принимает — здесь это
-// стоило бы 502 на каждом запросе, поэтому нормализуем.
+// Render подставляет адрес соседнего сервиса без схемы, причём во внутренней
+// сети это «triage-api:10000» (http, без домена), а публично —
+// «triage-api.onrender.com» (https). Различаем по точке в имени хоста.
+// Ошибка здесь не тихая: это 502 на каждом запросе.
 function normalizeUrl(raw) {
   const value = String(raw || '').trim().replace(/\/+$/, '');
   if (!value) return 'http://localhost:3001';
   if (/^https?:\/\//i.test(value)) return value;
-  const isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|$)/i.test(value);
-  return `${isLocal ? 'http' : 'https'}://${value.replace(/:443$/, '')}`;
+
+  const host = value.split(':')[0];
+  const isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/i.test(host);
+  const isInternal = !host.includes('.');
+
+  if (isLocal || isInternal) return `http://${value}`;
+  return `https://${value.replace(/:443$/, '')}`;
 }
 
 const API_URL = normalizeUrl(process.env.API_URL);

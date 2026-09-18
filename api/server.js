@@ -128,6 +128,8 @@ async function buildCard(session) {
 }
 
 const port = process.env.PORT || 3001;
-app.listen(port, () => {
+// Render проверяет здоровье сервиса по внутреннему адресу, поэтому слушать
+// нужно 0.0.0.0, а не то, что Node выберет по умолчанию.
+app.listen(port, '0.0.0.0', () => {
   console.log(`api :${port}  DEMO_MODE=${DEMO_MODE ? 1 : 0}  commit=${COMMIT}  rules=${rulesStatus().url || 'нет'}`);
 });

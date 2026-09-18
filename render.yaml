@@ -32,7 +32,7 @@ services:
         fromService:
           type: web
           name: triage-rules
-          property: host
+          property: hostport
       - key: RULES_TIMEOUT_MS
         value: "4000"
 
@@ -49,4 +49,4 @@ services:
         fromService:
           type: web
           name: triage-api
-          property: host
+          property: hostport
