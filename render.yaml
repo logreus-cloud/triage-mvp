@@ -1,12 +1,47 @@
+# Три сервиса. Порядок важен только для переменных: адреса api и rules
+# Render подставляет сам через fromService, руками вписывать ничего не нужно.
 services:
+  # Python-правила: срочность, разбор длительности, сводка по очереди.
   - type: web
-    name: triage-mvp
+    name: triage-rules
+    runtime: python
+    plan: free
+    rootDir: rules
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+
+  # Node-API: диалог, сборка карточки, очередь.
+  - type: web
+    name: triage-api
     runtime: node
     plan: free
+    rootDir: api
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: DEMO_MODE
         value: "1"
-      - key: NODE_VERSION
-        value: "22"
+      - key: RULES_URL
+        fromService:
+          type: web
+          name: triage-rules
+          property: hostport
+      - key: RULES_TIMEOUT_MS
+        value: "4000"
+
+  # Next.js: лендинг, опрос, экран врача. Публичная ссылка — этот сервис.
+  - type: web
+    name: triage-web
+    runtime: node
+    plan: free
+    rootDir: web
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: API_URL
+        fromService:
+          type: web
+          name: triage-api
+          property: hostport

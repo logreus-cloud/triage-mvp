@@ -1,17 +1,14 @@
 {
   "name": "triage-mvp",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
   "scripts": {
-    "start": "node server.js",
-    "smoke": "node scripts/smoke.js"
-  },
-  "dependencies": {
-    "express": "^4.19.2"
-  },
-  "optionalDependencies": {
-    "@anthropic-ai/sdk": "^0.68.0"
+    "install:all": "npm --prefix api install && npm --prefix web install",
+    "build": "npm --prefix web run build",
+    "smoke": "node scripts/smoke.js",
+    "seed": "node scripts/seed.js",
+    "wake": "node scripts/wake.js",
+    "test:rules": "python -m pytest rules -q"
   }
 }
