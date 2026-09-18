@@ -2,18 +2,51 @@
 //
 // Сервис — источник истины: он умеет разбирать даты и знает про препараты,
 // меняющие тактику. Но на бесплатном хостинге он засыпает, и первый запрос
-// после сна идёт полминуты. Поэтому любой сбой или таймаут means откат на
-// локальные JS-правила: карточка станет беднее, но врач её получит.
+// после сна идёт полминуты. Поэтому любой сбой или таймаут означает откат
+// на локальные JS-правила: карточка станет беднее, но врач её получит.
 import { classify as classifyLocally, parsePain } from './triage.js';
 import { normalizeUrl } from './url.js';
 
 const RULES_URL = normalizeUrl(process.env.RULES_URL);
 const TIMEOUT_MS = Number(process.env.RULES_TIMEOUT_MS || 4000);
+// Бесплатный инстанс просыпается около полуминуты. Четыре секунды — верный
+// таймаут для живого сервиса, но на холодном старте из-за него первый
+// пациент получал бы деградированный разбор. Поэтому одна длинная повторная
+// попытка; чтобы она не превращалась в наказание, когда сервис действительно
+// лежит, после неудачи её не повторяем целую минуту.
+const WAKE_TIMEOUT_MS = Number(process.env.RULES_WAKE_TIMEOUT_MS || 25000);
+const COOLDOWN_MS = 60000;
 
 let lastError = null;
+let coldUntil = 0;
 
 export function rulesStatus() {
-  return { configured: Boolean(RULES_URL), url: RULES_URL || null, lastError };
+  return {
+    configured: Boolean(RULES_URL),
+    url: RULES_URL || null,
+    lastError,
+    coolingDown: Date.now() < coldUntil,
+  };
+}
+
+// Первая попытка — короткая. Если не вышло и мы не в периоде остывания,
+// вторая с запасом: скорее всего сервис в этот момент как раз просыпается.
+async function callWithWake(path, payload) {
+  try {
+    const result = await callRules(path, payload, TIMEOUT_MS);
+    coldUntil = 0;
+    return result;
+  } catch (first) {
+    if (Date.now() < coldUntil) throw first;
+    try {
+      const result = await callRules(path, payload, WAKE_TIMEOUT_MS);
+      coldUntil = 0;
+      return result;
+    } catch (second) {
+      coldUntil = Date.now() + COOLDOWN_MS;
+      throw second;
+    }
+  }
 }
 
 async function callRules(path, payload, timeoutMs = TIMEOUT_MS) {
@@ -53,7 +86,7 @@ function fallbackVerdict(answers, why) {
 export async function classify(answers) {
   if (!RULES_URL) return fallbackVerdict(answers, 'RULES_URL не задан');
   try {
-    const data = await callRules('/classify', answers);
+    const data = await callWithWake('/classify', answers);
     lastError = null;
     return {
       urgency: data.urgency,
@@ -78,7 +111,7 @@ export async function classify(answers) {
 export async function analytics(cards) {
   if (RULES_URL) {
     try {
-      const data = await callRules('/analytics', { cards });
+      const data = await callWithWake('/analytics', { cards });
       return { ...data, engine: 'python' };
     } catch (err) {
       lastError = String(err.message || err);

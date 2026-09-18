@@ -40,21 +40,30 @@ async function forward(request, params) {
     init.body = await request.text();
   }
 
-  try {
-    const response = await fetch(target, init);
-    const body = await response.text();
-    return new Response(body, {
-      status: response.status,
-      headers: { 'content-type': 'application/json; charset=utf-8' },
-    });
-  } catch (error) {
-    // Бэкенд спит или не поднялся — фронтенд должен сказать это словами,
-    // а не показать пустой экран.
-    return Response.json(
-      { error: `API недоступен: ${error.message}` },
-      { status: 502 },
-    );
+  // Бесплатный инстанс API засыпает, и пока он просыпается, соединение
+  // рвётся. Одна повторная попытка превращает ошибку у первого посетителя
+  // в медленную, но успешную загрузку.
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch(target, init);
+      const body = await response.text();
+      return new Response(body, {
+        status: response.status,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 2500));
+    }
   }
+
+  // Бэкенд не поднялся — фронтенд должен сказать это словами,
+  // а не показать пустой экран.
+  return Response.json(
+    { error: `API недоступен: ${lastError?.message ?? 'нет ответа'}` },
+    { status: 502 },
+  );
 }
 
 export async function GET(request, { params }) {
