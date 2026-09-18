@@ -58,7 +58,7 @@ npm run wake         # разбудить уснувшие инстансы пе
 Все скрипты принимают `BASE_URL`, поэтому тот же прогон идёт по боевой ссылке:
 
 ```bash
-BASE_URL=https://triage-web.onrender.com npm run smoke
+BASE_URL=https://triage-web-eaj2.onrender.com npm run smoke
 ```
 
 ## Деплой на Render
