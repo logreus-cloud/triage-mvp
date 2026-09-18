@@ -20,10 +20,13 @@ export function EmergencyBanner() {
 }
 
 export function asPlainText(card) {
+  const flags = card.redFlags?.length ? card.redFlags.join(', ') : 'не выявлены';
   const lines = [
     `Срочность: ${card.urgency.label}`,
     `Основание: ${card.reason}`,
-    `Тревожные признаки: ${card.redFlags?.length ? card.redFlags.join(', ') : 'не выявлены'}`,
+    // На «неотложно» основание уже перечисляет признаки — врачу незачем
+    // вставлять в карту один и тот же список дважды.
+    ...(card.reason?.includes(flags) ? [] : [`Тревожные признаки: ${flags}`]),
     `Жалобы: ${card.complaints || '—'}`,
     `Длительность: ${card.durationNote || card.duration || '—'}`,
     `Боль (0-10): ${card.painLevel ?? '—'}`,
@@ -69,10 +72,11 @@ export function CopyButton({ card }) {
 }
 
 export function CardTable({ card }) {
+  const flags = card.redFlags?.length ? card.redFlags.join(', ') : 'не выявлены';
   const rows = [
     ['Срочность', <Badge key="u" urgency={card.urgency} />],
     ['Основание', card.reason],
-    ['Тревожные признаки', card.redFlags?.length ? card.redFlags.join(', ') : 'не выявлены'],
+    ['Тревожные признаки', card.reason?.includes(flags) ? null : flags],
     ['Жалобы', card.complaints],
     ['Длительность', card.durationNote || card.duration],
     ['Боль (0–10)', card.painLevel],

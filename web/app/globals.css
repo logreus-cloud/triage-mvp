@@ -83,14 +83,35 @@ a { color: inherit; text-decoration: none; }
   border-bottom: var(--hair);
 }
 .nav-in { display: flex; align-items: center; gap: 4px; padding: 16px 0; }
-.brand { font-size: 22px; font-weight: 650; letter-spacing: -0.045em; margin-right: auto; }
+.brand {
+  display: flex; align-items: center; gap: 9px; margin-right: auto;
+  font-size: 22px; font-weight: 650; letter-spacing: -0.045em;
+  min-width: 0; white-space: nowrap;
+}
+.dot {
+  width: 10px; height: 10px; border-radius: 50%; flex: none;
+  background: var(--emergency);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--emergency) 18%, transparent);
+}
 .nav .link {
   padding: 9px 15px; border-radius: 100px; font-size: 15px;
   color: var(--ink-soft); transition: background .18s, color .18s;
 }
 .nav .link:hover { background: color-mix(in srgb, var(--panel) 55%, transparent); color: var(--ink); }
 .nav .link[data-active="true"] { background: var(--ink); color: var(--paper); }
-@media (max-width: 600px) { .nav .link { padding: 8px 11px; font-size: 14px; } }
+/* На телефоне четыре ссылки плюс полное название не помещаются в строку
+   и выталкивают страницу вбок. Сначала прячем хвост названия, затем
+   поджимаем сами ссылки. */
+@media (max-width: 860px) { .brand-tail { display: none; } }
+@media (max-width: 600px) {
+  .nav .link { padding: 8px 10px; font-size: 14px; }
+  .brand { font-size: 19px; }
+}
+@media (max-width: 420px) {
+  .nav-in { gap: 0; }
+  .nav .link { padding: 7px 8px; font-size: 13px; }
+  .brand { font-size: 17px; gap: 7px; }
+}
 
 /* ---------- полноэкранные половины ---------- */
 .split { display: grid; grid-template-columns: 1fr 1fr; border-bottom: var(--hair); }
