@@ -10,6 +10,11 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
+    envVars:
+      # Без этого Render берёт свежайший Python, под который у pydantic-core
+      # ещё нет колеса, и сборка уходит компилировать Rust — и падает.
+      - key: PYTHON_VERSION
+        value: "3.12.8"
 
   # Node-API: диалог, сборка карточки, очередь.
   - type: web
