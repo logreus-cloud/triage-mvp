@@ -37,17 +37,20 @@ export default function Doctor() {
   }, [load]);
 
   return (
-    <main className="wrap" style={{ paddingTop: 28, paddingBottom: 40 }}>
+    <main className="wrap" style={{ padding: 'clamp(32px, 5vw, 64px) 0' }}>
       <div className="row">
-        <h1 style={{ fontSize: '1.6rem', margin: 0 }}>Очередь пациентов</h1>
+        <div>
+          <span className="eyebrow">Экран врача</span>
+          <h1 style={{ marginTop: 16, fontSize: 'clamp(2rem, 5vw, 3.4rem)' }}>Очередь пациентов</h1>
+        </div>
         <span className="spacer" />
-        <button type="button" className="ghost" onClick={load}>Обновить</button>
+        <button type="button" className="btn light" onClick={load}>Обновить</button>
       </div>
 
-      {error && <div className="warn" style={{ marginTop: 16 }}>{error}</div>}
+      {error && <div className="warn" style={{ marginTop: 26 }}>{error}</div>}
 
       {stats && stats.total > 0 && (
-        <div className="stats" style={{ marginTop: 20 }}>
+        <div className="stats" style={{ marginTop: 34 }}>
           {stats.byUrgency.map((row) => (
             <div key={row.code} className="stat">
               <b style={{ color: `var(--${row.code})` }}>{row.count}</b>
@@ -67,56 +70,56 @@ export default function Doctor() {
         </div>
       )}
 
-      {loading && <p className="muted">Загрузка…</p>}
+      {loading && <p className="muted" style={{ marginTop: 30 }}>Загрузка…</p>}
 
       {!loading && !cards.length && !error && (
-        <p className="muted" style={{ marginTop: 24 }}>
-          Пока никто не завершил опрос. Запустите <code>npm run seed</code> или
-          пройдите опрос сами.
+        <p className="muted" style={{ marginTop: 34 }}>
+          Пока никто не завершил опрос.
         </p>
       )}
 
-      <div style={{ display: 'grid', gap: 14, marginTop: 18 }}>
+      <div style={{ marginTop: 40 }}>
         {cards.map((card) => (
-          <article key={card.id} className={`card queue-item ${card.urgency.code}`}>
-            <div className="row">
-              <Badge urgency={card.urgency} />
-              <span className="muted small">
-                {new Date(card.createdAt).toLocaleString('ru-RU')}
-              </span>
-              <span className="spacer" />
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => setOpen(open === card.id ? null : card.id)}
-              >
-                {open === card.id ? 'Свернуть' : 'Открыть карточку'}
-              </button>
-            </div>
-
-            <h3 style={{ margin: '12px 0 2px', fontSize: '1.08rem' }}>
-              {card.complaints || '—'}
-            </h3>
-            <p className="muted small" style={{ margin: 0 }}>
-              {card.durationNote || card.duration} · боль {card.painLevel ?? '—'} из 10
-              {card.redFlags?.length ? ` · ${card.redFlags.join(', ')}` : ''}
-            </p>
-
-            {open === card.id && (
-              <div style={{ marginTop: 16 }}>
-                <CardTable card={card} />
-                <div className="row" style={{ marginTop: 14 }}>
-                  <CopyButton card={card} />
-                </div>
+          <article key={card.id} className="queue-row">
+            <div className={`rule ${card.urgency.code}`}>
+              <div className="row">
+                <Badge urgency={card.urgency} />
+                <span className="small muted">
+                  {new Date(card.createdAt).toLocaleString('ru-RU')}
+                </span>
+                <span className="spacer" />
+                <button
+                  type="button"
+                  className="btn light"
+                  style={{ padding: '10px 18px' }}
+                  onClick={() => setOpen(open === card.id ? null : card.id)}
+                >
+                  {open === card.id ? 'Свернуть' : 'Открыть карточку'}
+                </button>
               </div>
-            )}
+
+              <h3 style={{ margin: '16px 0 6px' }}>{card.complaints || '—'}</h3>
+              <p className="small muted" style={{ margin: 0 }}>
+                {card.durationNote || card.duration} · боль {card.painLevel ?? '—'} из 10
+                {card.redFlags?.length ? ` · ${card.redFlags.join(', ')}` : ''}
+              </p>
+
+              {open === card.id && (
+                <div style={{ marginTop: 26, maxWidth: 760 }}>
+                  <CardTable card={card} />
+                  <div className="row" style={{ marginTop: 20 }}>
+                    <CopyButton card={card} />
+                  </div>
+                </div>
+              )}
+            </div>
           </article>
         ))}
       </div>
 
       {stats?.engine === 'js-fallback' && cards.length > 0 && (
-        <p className="muted small" style={{ marginTop: 20 }}>
-          Сводка посчитана резервным движком — Python-сервис правил сейчас недоступен.
+        <p className="small muted" style={{ marginTop: 26 }}>
+          Сводка посчитана резервным движком — сервис правил сейчас недоступен.
         </p>
       )}
     </main>

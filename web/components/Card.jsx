@@ -9,7 +9,7 @@ export function Badge({ urgency }) {
 export function EmergencyBanner() {
   return (
     <div className="banner">
-      <strong>Это похоже на неотложное состояние.</strong>
+      <strong>Это похоже на неотложное состояние</strong>
       <a className="phone" href="tel:103">103</a>
       <span>
         Со стационарного телефона — 03. Не садитесь за руль, не ждите планового
@@ -62,7 +62,7 @@ export function CopyButton({ card }) {
   }
 
   return (
-    <button type="button" className="ghost" onClick={copy}>
+    <button type="button" className="btn" onClick={copy}>
       {label}
     </button>
   );
@@ -87,8 +87,8 @@ export function CardTable({ card }) {
     <>
       {card.needsClarification?.length ? (
         <div className="warn">
-          <strong>Уточнить у пациента:</strong>
-          <ul style={{ margin: '6px 0 0', paddingLeft: 20 }}>
+          <strong>Уточнить у пациента</strong>
+          <ul style={{ margin: '8px 0 0', paddingLeft: 20 }}>
             {card.needsClarification.map((item) => (
               <li key={item}>{item}</li>
             ))}
