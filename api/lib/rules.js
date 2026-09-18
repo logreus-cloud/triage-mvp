@@ -11,10 +11,12 @@ const RULES_URL = normalizeUrl(process.env.RULES_URL);
 const TIMEOUT_MS = Number(process.env.RULES_TIMEOUT_MS || 4000);
 // Бесплатный инстанс просыпается около полуминуты. Четыре секунды — верный
 // таймаут для живого сервиса, но на холодном старте из-за него первый
-// пациент получал бы деградированный разбор. Поэтому одна длинная повторная
-// попытка; чтобы она не превращалась в наказание, когда сервис действительно
-// лежит, после неудачи её не повторяем целую минуту.
-const WAKE_TIMEOUT_MS = Number(process.env.RULES_WAKE_TIMEOUT_MS || 25000);
+// пациент получал бы деградированный разбор. Поэтому при отказе пробуем
+// снова с паузами, пока не истечёт дедлайн пробуждения; чтобы это не
+// наказывало всех, когда сервис действительно лежит, после неудачи
+// длинных попыток нет целую минуту.
+const WAKE_TIMEOUT_MS = Number(process.env.RULES_WAKE_TIMEOUT_MS || 45000);
+const RETRY_DELAY_MS = Number(process.env.RULES_RETRY_DELAY_MS || 4000);
 const COOLDOWN_MS = 60000;
 
 let lastError = null;
@@ -29,8 +31,9 @@ export function rulesStatus() {
   };
 }
 
-// Первая попытка — короткая. Если не вышло и мы не в периоде остывания,
-// вторая с запасом: скорее всего сервис в этот момент как раз просыпается.
+// Первая попытка — короткая. Если сервис спит, повторяем с паузами до
+// дедлайна: Render, пока поднимает бесплатный инстанс, отвечает 502 сразу,
+// поэтому попытки подряд бессмысленны — ждать надо между ними, а не внутри.
 async function callWithWake(path, payload) {
   try {
     const result = await callRules(path, payload, TIMEOUT_MS);
@@ -38,14 +41,21 @@ async function callWithWake(path, payload) {
     return result;
   } catch (first) {
     if (Date.now() < coldUntil) throw first;
-    try {
-      const result = await callRules(path, payload, WAKE_TIMEOUT_MS);
-      coldUntil = 0;
-      return result;
-    } catch (second) {
-      coldUntil = Date.now() + COOLDOWN_MS;
-      throw second;
+
+    const deadline = Date.now() + WAKE_TIMEOUT_MS;
+    let last = first;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      try {
+        const result = await callRules(path, payload, TIMEOUT_MS);
+        coldUntil = 0;
+        return result;
+      } catch (err) {
+        last = err;
+      }
     }
+    coldUntil = Date.now() + COOLDOWN_MS;
+    throw last;
   }
 }
 
